@@ -28,7 +28,14 @@ void ATopDownCameraController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
+	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (PlayerController)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Blue, "Cursor");
+		PlayerController->bShowMouseCursor = true;
+		PlayerController->bEnableClickEvents = true;
+		PlayerController->bEnableMouseOverEvents = true;
+	}
 }
 
 #pragma region Input Process
@@ -45,19 +52,31 @@ void ATopDownCameraController::SetupPlayerInputComponent(UInputComponent* Player
 }
 
 void ATopDownCameraController::MoveRight(float Value) {
-	AddActorWorldOffset(FVector(0.0f,Value * MoveSpeed * GetWorld()->GetDeltaSeconds(), 0.0f), true);
+	FVector RightDirection = GetActorRightVector();
+	RightDirection.Z = 0.0f;
+	RightDirection.Normalize();
+
+	AddActorWorldOffset(RightDirection * Value * MoveSpeed * GetWorld()->GetDeltaSeconds(), true);
 }
+
 void ATopDownCameraController::MoveForward(float Value) {
-	AddActorWorldOffset(FVector(Value * MoveSpeed * GetWorld()->GetDeltaSeconds(), 0.0f, 0.0f), true);
-	
+	FVector ForwardDirection = GetActorForwardVector();
+	ForwardDirection.Z = 0.0f;
+	ForwardDirection.Normalize();
+
+	AddActorWorldOffset(ForwardDirection * Value * MoveSpeed * GetWorld()->GetDeltaSeconds(), true);
 }
+
+
 void ATopDownCameraController::ZoomIn(float Value) {
-	float NewArmLength = FMath::Clamp(SpringArm->TargetArmLength - Value * ZoomSpeed, MinZoom, MaxZoom);
-	SpringArm->TargetArmLength = NewArmLength;
+    float NewArmLength = FMath::Clamp(SpringArm->TargetArmLength - Value * ZoomSpeed, MinZoom, MaxZoom);
+    SpringArm->TargetArmLength = NewArmLength;
 }
+
 void ATopDownCameraController::RotateYAW(float Value) {
-	FRotator NewRotation = GetActorRotation();
-	NewRotation.Yaw += Value * RotateSpeed * GetWorld()->GetDeltaSeconds();
-	SetActorRotation(NewRotation);
+    FRotator NewRotation = GetActorRotation();
+    NewRotation.Yaw += Value * RotateSpeed * GetWorld()->GetDeltaSeconds();
+    SetActorRotation(NewRotation);
 }
+
 #pragma endregion
