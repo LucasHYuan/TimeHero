@@ -6,6 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GridCursorManager.h"
 #include "TopDownCameraController.generated.h"
 
 
@@ -17,6 +18,7 @@ class TIMEHERO_API ATopDownCameraController : public APawn
 public:	
 	ATopDownCameraController();
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
 
@@ -43,4 +45,5 @@ private:
 	void MoveForward(float Value);
 	void ZoomIn(float Value);
 	void RotateYAW(float Value);
+	UCursorComponent* CursorComponent;
 };

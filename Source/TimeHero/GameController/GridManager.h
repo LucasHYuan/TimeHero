@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Containers/Array.h"
+#include "../Grids/GridCell.h"
 #include "GridManager.generated.h"
 
 UENUM(BlueprintType)
@@ -36,21 +37,6 @@ struct FMeshData : public FTableRowBase
 	UMaterialInstance* FlatBorderMaterial;
 };
 
-
-//
-//USTRUCT(BlueprintType)
-//struct FGridData : public FTableRowBase
-//{
-//	GENERATED_BODY()
-//
-//	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-//	EGridType GridType;
-//
-//	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-//	FMeshData MeshData;
-//};
-
-
 UCLASS()
 class TIMEHERO_API AGridManager : public AActor
 {
@@ -76,7 +62,8 @@ public:
 	FVector CenterPosition = AActor::GetActorLocation();
 
 	FVector LeftBottomPosition;
-
+	int32 Source = -1;
+	int32 Target = -1;
 	// FUNCTIONS //
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
@@ -92,7 +79,12 @@ public:
 	void UnSelected(int32 x, int32 y);
 	void UnSelected(int32 idx);
 	void UnSelected(FIntPoint point);
-
+	void Clicked(int32 x, int32 y);
+	void Clicked(int32 idx);
+	void Clicked(FIntPoint point);
+	TArray<AGridCell*> FindPath(AGridCell* StartCell, AGridCell* EndCell);
+	TArray<AGridCell*> GetValidNeighbours(AGridCell* Cell);
+	void SetTarget(FIntPoint point);
 protected:
 	virtual void BeginPlay() override;
 
@@ -100,9 +92,8 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Grid")
 	UInstancedStaticMeshComponent* InstancedMeshComponent;
 
-
 	UPROPERTY(VisibleAnywhere, Category = "Grid")
-	TArray<int32> GridInstanceIndex;
+	TArray<AGridCell*> GridInstanceIndex;
 
 	void ClearGrid();
 	

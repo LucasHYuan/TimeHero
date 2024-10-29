@@ -10,13 +10,13 @@
 #include "Kismet/GameplayStatics.h"
 #include "Math/Plane.h"
 
-AGridCursorManager::AGridCursorManager()
+UCursorComponent::UCursorComponent()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = true;
 
 }
 
-void AGridCursorManager::UpdateCursorSelectionVisualization(FVector CursorLocation)
+void UCursorComponent::UpdateCursorSelectionVisualization(FVector CursorLocation)
 {
     float TileX = GridManager->TileSize.X;
     float TileY = GridManager->TileSize.Y;
@@ -31,15 +31,15 @@ void AGridCursorManager::UpdateCursorSelectionVisualization(FVector CursorLocati
     GridManager->Selected(NewCursorLocation);
 }
 
-void AGridCursorManager::BeginPlay()
+void UCursorComponent::BeginPlay()
 {
 	Super::BeginPlay();
     GridManager = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
 }
 
-void AGridCursorManager::Tick(float DeltaTime)
+void UCursorComponent::HandleTick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    //GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Purple, "HandleTick");
 	FVector CursorLocation;
 	if (GetCursorLocationOnGrid(CursorLocation)) 
 	{
@@ -48,7 +48,7 @@ void AGridCursorManager::Tick(float DeltaTime)
 	}
 }
 
-bool AGridCursorManager::GetCursorLocationOnGrid(FVector& OutLocation)
+bool UCursorComponent::GetCursorLocationOnGrid(FVector& OutLocation)
 {
     APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
     if (PlayerController)
@@ -82,4 +82,43 @@ bool AGridCursorManager::GetCursorLocationOnGrid(FVector& OutLocation)
     }
     return false;
 }
+
+void UCursorComponent::OnLeftMouseClick()
+{
+    //GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Purple, "Clicked");
+    FVector CursorLocation;
+    if (GetCursorLocationOnGrid(CursorLocation))
+    {
+        float TileX = GridManager->TileSize.X;
+        float TileY = GridManager->TileSize.Y;
+
+        FVector DifferenceVec = CursorLocation - GridManager->LeftBottomPosition;
+        FIntPoint NewCursorLocation = FIntPoint(FMath::RoundToInt(DifferenceVec.X / TileX),
+        FMath::RoundToInt(DifferenceVec.Y / TileY));
+        GridManager->Clicked(NewCursorLocation);
+        //GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Purple, "Clicked and Found Location");
+        DrawDebugSphere(GetWorld(), CursorLocation, 10.0f, 12, FColor::Red, false, -1.0f);
+    }
+}
+
+void UCursorComponent::OnRightMouseClick()
+{
+    FVector CursorLocation;
+    if (GetCursorLocationOnGrid(CursorLocation))
+    {
+        float TileX = GridManager->TileSize.X;
+        float TileY = GridManager->TileSize.Y;
+
+        FVector DifferenceVec = CursorLocation - GridManager->LeftBottomPosition;
+        FIntPoint NewCursorLocation = FIntPoint(FMath::RoundToInt(DifferenceVec.X / TileX),
+            FMath::RoundToInt(DifferenceVec.Y / TileY));
+        GridManager->Clicked(NewCursorLocation);
+        GridManager->SetTarget(NewCursorLocation);
+        //GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Purple, "Clicked and Found Location");
+        DrawDebugSphere(GetWorld(), CursorLocation, 10.0f, 12, FColor::Red, false, -1.0f);
+    }
+}
+
+
+
 

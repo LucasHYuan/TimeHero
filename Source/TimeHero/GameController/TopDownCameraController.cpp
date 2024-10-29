@@ -9,7 +9,7 @@
 
 ATopDownCameraController::ATopDownCameraController()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
 	RootComponent = SpringArm;
@@ -21,6 +21,8 @@ ATopDownCameraController::ATopDownCameraController()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+
+	CursorComponent = CreateDefaultSubobject<UCursorComponent>("CursorComponent");
 }
 
 
@@ -48,7 +50,15 @@ void ATopDownCameraController::SetupPlayerInputComponent(UInputComponent* Player
 	PlayerInputComponent->BindAxis("CameraMoveForward", this, &ATopDownCameraController::MoveForward);
 	PlayerInputComponent->BindAxis("CameraZoomIn", this, &ATopDownCameraController::ZoomIn);
 	PlayerInputComponent->BindAxis("CameraYawRotate", this, &ATopDownCameraController::RotateYAW);
+	PlayerInputComponent->BindAction("LeftMouseClick", IE_Pressed, CursorComponent, &UCursorComponent::OnLeftMouseClick);
+	PlayerInputComponent->BindAction("RightMouseClick", IE_Pressed, CursorComponent, &UCursorComponent::OnRightMouseClick);
+}
 
+void ATopDownCameraController::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Yellow, "Camear::Tick");
+	CursorComponent->HandleTick(DeltaTime);
 }
 
 void ATopDownCameraController::MoveRight(float Value) {

@@ -22,7 +22,7 @@ AGridManager::AGridManager()
         for (int32 Col = 0; Col < TileCount.Y; ++Col)
         {
             int32 Index = Row * TileCount.X + Col;
-            GridInstanceIndex[Index] = -1;
+            GridInstanceIndex[Index] = nullptr;
         }
     }
 }
@@ -65,9 +65,10 @@ void AGridManager::Selected(int32 x, int32 y)
 void AGridManager::Selected(int32 idx)
 {
     if (idx<0 || idx>TileCount.X * TileCount.Y - 1)return;
-    int32 MeshIndex = GridInstanceIndex[idx];
-    if (MeshIndex == -1)return;
-    InstancedMeshComponent->SetCustomDataValue(MeshIndex, 0, 1);
+    int32 MeshIndex;
+    if (GridInstanceIndex[idx])MeshIndex = GridInstanceIndex[idx]->MeshIdx;
+    else return;
+    GridInstanceIndex[idx]->Selected();
 }
 
 void AGridManager::Selected(FIntPoint point)
@@ -84,15 +85,179 @@ void AGridManager::UnSelected(int32 x, int32 y)
 void AGridManager::UnSelected(int32 idx)
 {
     if (idx<0 || idx>TileCount.X * TileCount.Y - 1)return;
-    int32 MeshIndex = GridInstanceIndex[idx];
-    if (MeshIndex == -1)return;
-    InstancedMeshComponent->SetCustomDataValue(MeshIndex, 0, 0);
+    int32 MeshIndex;
+    if (GridInstanceIndex[idx])MeshIndex = GridInstanceIndex[idx]->MeshIdx;
+    else return;
+    GridInstanceIndex[idx]->UnSelected();
+    
 }
 
 void AGridManager::UnSelected(FIntPoint point)
 {
     UnSelected(point.X, point.Y);
 }
+
+void AGridManager::Clicked(int32 x, int32 y)
+{
+    int32 idx = x * TileCount.X + y;
+    Clicked(idx);
+}
+
+void AGridManager::Clicked(int32 idx) {
+    if (idx<0 || idx>TileCount.X * TileCount.Y - 1)return;
+    int32 MeshIndex;
+    if (GridInstanceIndex[idx])MeshIndex = GridInstanceIndex[idx]->MeshIdx;
+    else return;
+    GridInstanceIndex[idx]->Clicked();
+    if(Source==-1)Source = idx;
+}
+
+void AGridManager::Clicked(FIntPoint point)
+{
+    Clicked(point.X, point.Y);
+}
+
+TArray<AGridCell*> AGridManager::FindPath(AGridCell* StartCell, AGridCell* EndCell)
+{
+    TArray<AGridCell*> Path;
+
+    if (!StartCell || !EndCell)
+    {
+        if(!StartCell)
+        GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Yellow, "Path Find Failed Start Cell");
+        if (!EndCell)
+        GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Yellow, "Path Find Failed End Cell");
+        return Path;
+    }
+
+    TSet<AGridCell*> OpenSet;
+    OpenSet.Add(StartCell);
+
+    TSet<AGridCell*> ClosedSet;
+
+    TMap<AGridCell*, float> GScore;
+    GScore.Add(StartCell, 0.0f);
+
+    TMap<AGridCell*, float> FScore;
+    /*HeuristicCost(StartCell, EndCell)*/
+    // Mahattan Distance Here
+    FScore.Add(StartCell, FMath::Abs(StartCell->X - EndCell->X) + FMath::Abs(StartCell->Y - EndCell->Y));
+
+    TMap<AGridCell*, AGridCell*> CameFrom;
+
+    while (OpenSet.Num() > 0)
+    {
+        AGridCell* CurrentCell = nullptr;
+        float LowestFScore = FLT_MAX;
+        for (AGridCell* Cell : OpenSet)
+        {
+            float Score = FScore.Contains(Cell) ? FScore[Cell] : FLT_MAX;
+            if (Score < LowestFScore)
+            {
+                LowestFScore = Score;
+                CurrentCell = Cell;
+            }
+        }
+
+        if (CurrentCell == EndCell)
+        {
+            while (CurrentCell)
+            {
+                Path.Insert(CurrentCell, 0);
+                CurrentCell = CameFrom.Contains(CurrentCell) ? CameFrom[CurrentCell] : nullptr;
+            }
+            return Path;
+        }
+
+        OpenSet.Remove(CurrentCell);
+        ClosedSet.Add(CurrentCell);
+
+        for (AGridCell* Neighbor : GetValidNeighbours(CurrentCell))
+        {
+            if (ClosedSet.Contains(Neighbor))
+            {
+                continue;
+            }
+
+            float TentativeGScore = GScore[CurrentCell] + (CurrentCell->Cost);
+
+            if (!OpenSet.Contains(Neighbor))
+            {
+                OpenSet.Add(Neighbor);
+            }
+            else if (TentativeGScore >= GScore[Neighbor])
+            {
+                continue;
+            }
+
+            CameFrom.Add(Neighbor, CurrentCell);
+            GScore.Add(Neighbor, TentativeGScore);
+            FScore.Add(Neighbor, TentativeGScore + FMath::Abs(Neighbor->X - EndCell->X) + FMath::Abs(Neighbor->Y - EndCell->Y));
+        }
+    }
+
+    return Path;
+}
+
+TArray<AGridCell*> AGridManager::GetValidNeighbours(AGridCell* Cell)
+{
+    TArray<AGridCell*> Neighbours;
+
+    if (!Cell)
+    {
+        return Neighbours;
+    }
+
+    int32 X = Cell->X;
+    int32 Y = Cell->Y;
+
+    TArray<FIntPoint> Directions = {
+        FIntPoint(-1, 0),
+        FIntPoint(1, 0),
+        FIntPoint(0, -1),
+        FIntPoint(0, 1)
+    };
+
+    for (const FIntPoint& Dir : Directions)
+    {
+        int32 NeighbourRow = X + Dir.X;
+        int32 NeighbourColumn = Y + Dir.Y;
+
+        if (NeighbourRow >= 0 && NeighbourRow < TileCount.X &&
+            NeighbourColumn >= 0 && NeighbourColumn < TileCount.Y)
+        {
+            int32 Index = NeighbourRow * TileCount.Y + NeighbourColumn;
+            AGridCell* Neighbour = GridInstanceIndex[Index];
+            if (Neighbour)
+            {
+                Neighbours.Add(Neighbour);
+            }
+        }
+    }
+
+    return Neighbours;
+}
+
+void AGridManager::SetTarget(FIntPoint point)
+{   
+    int32 idx = point.X * TileCount.X + point.Y;
+    if (idx<0 || idx>TileCount.X * TileCount.Y - 1)return;
+    int32 MeshIndex;
+    if (GridInstanceIndex[idx])MeshIndex = GridInstanceIndex[idx]->MeshIdx;
+    else return;
+    Target = idx;
+    /*TArray<AGridCell*> Neighbours = GetValidNeighbours(GridInstanceIndex[Target]);
+    for (auto GridCell : Neighbours) {
+        GridCell->OnPath();
+    }*/
+    if (Target == -1 || Source == -1)return;
+    TArray<AGridCell*> Path = FindPath(GridInstanceIndex[Source], GridInstanceIndex[Target]);
+    for (auto GridCell : Path) {
+        GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Yellow, "1");
+        GridCell->OnPath();
+    }
+}
+
 
 
 
@@ -167,7 +332,12 @@ void AGridManager::GenerateGrid(EGridType type)
                     break;
                 }
                 InstanceTransform.SetLocation(Location);
-                GridInstanceIndex[x*TileCount.X + y] = InstancedMeshComponent->AddInstance(InstanceTransform);
+                AGridCell* NewCell = GetWorld()->SpawnActor<AGridCell>(AGridCell::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
+                GridInstanceIndex[x * TileCount.Y + y] = NewCell;
+                NewCell->MeshIdx = InstancedMeshComponent->AddInstance(InstanceTransform);
+                NewCell->X = x;
+                NewCell->Y = y;
+                NewCell->SetInstancedStaticMeshComponent(InstancedMeshComponent);
             }
             
         }
