@@ -335,9 +335,8 @@ void AGridManager::GenerateGrid(EGridType type)
                 AGridCell* NewCell = GetWorld()->SpawnActor<AGridCell>(AGridCell::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
                 GridInstanceIndex[x * TileCount.Y + y] = NewCell;
                 NewCell->MeshIdx = InstancedMeshComponent->AddInstance(InstanceTransform);
-                NewCell->X = x;
-                NewCell->Y = y;
                 NewCell->SetInstancedStaticMeshComponent(InstancedMeshComponent);
+                NewCell->SetPos(x, y);   
             }
             
         }

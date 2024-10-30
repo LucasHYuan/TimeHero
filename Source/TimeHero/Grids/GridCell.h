@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "../Units/BaseUnit.h"
+#include "../Units/PlayerUnit.h"
 #include "GridCell.generated.h"
 
 UCLASS()
@@ -26,9 +28,11 @@ public:
 	void UnSelected();
 	void Clicked();
 	void OnPath();
+	void SetPos(int32 x, int32 y);
 protected:
 	virtual void BeginPlay() override;
-
+	ABaseUnit* Unit;
 private:
 	UInstancedStaticMeshComponent* InstancedMeshComponent;
+	void GeneratePlayer();
 };
